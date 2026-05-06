@@ -1,21 +1,13 @@
-name: CI/CD MLflow
+name: CI/CD Docker Hub Only
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-
-env:
-  CSV_URL: "MLProject/gym_dataset_preprocessing.csv" 
-  TARGET_VAR: "Experience_Level"
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -25,39 +17,31 @@ jobs:
         with:
           python-version: "3.12.7"
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install mlflow==2.19.0 pandas scikit-learn==1.5.2 dagshub
+          pip install mlflow==2.19.0 pandas scikit-learn==1.5.2
 
-      - name: Run training
+      - name: Run Training (Local SQLite)
         env:
-          # Pastikan URI mengarah ke SQLite lokal agar folder mlruns tercipta di runner
+          # Memaksa MLflow menggunakan database lokal agar folder mlruns tercipta
           MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
-          # JANGAN gunakan 'mlflow run'. Panggil script Python langsung.
-          # Ini adalah cara teraman untuk menghindari konflik ID saat inisialisasi database.
           python MLProject/modelling.py
-      - name: Sync to DagsHub (For Thesis Data)
-        env:
-          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
-          # Ganti dengan 'username/repo-name' Anda
-          REPO_NAME: "username/MSML2" 
-        run: |
-          # Menggunakan library dagshub untuk upload hasil mlruns lokal ke remote
-          python -c "import dagshub; dagshub.upload_files(repo='$REPO_NAME', local_path='mlruns', remote_path='mlruns')"
 
-      - name: Get latest MLflow run_id
+      - name: Get Run ID
         run: |
-          # Ambil ID dari folder lokal
+          # Mengambil folder ID terbaru dari eksperimen 0
           RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | rev | cut -d'/' -f2 | rev)
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "Latest local run_id: $RUN_ID"
+          echo "Using Run ID: $RUN_ID"
 
-      - name: Build Docker Model
+      - name: Build Docker Image
         run: |
-          mlflow models build-docker --model-uri "mlruns/0/${{ env.RUN_ID }}/artifacts/model" --name "gym-exercise"
+          # Build menggunakan model yang tersimpan fisik di runner
+          mlflow models build-docker \
+            --model-uri "mlruns/0/${{ env.RUN_ID }}/artifacts/model" \
+            --name "gym-exercise"
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -65,7 +49,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Tag and Push
+      - name: Push to Docker Hub
         run: |
           docker tag gym-exercise ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
