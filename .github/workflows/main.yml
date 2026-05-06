@@ -30,32 +30,33 @@ jobs:
           python -m pip install --upgrade pip
           pip install mlflow==2.19.0 pandas scikit-learn dagshub
 
-      - name: Run mlflow project
+      - name: Run training
         env:
-          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-          MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+          # Kita paksa jalan lokal agar folder mlruns tercipta pasti di runner
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
-          # 1. Logging ke DagsHub untuk keperluan data skripsi
+          # Jalankan training (akan menghasilkan folder mlruns secara lokal)
           mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
-          
-          # 2. PAKSA simpan ke lokal untuk proses build-docker
-          # Gunakan env variable untuk mengarahkan tracking ke sqlite lokal
-          export MLFLOW_TRACKING_URI=sqlite:///mlflow.db
-          mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
+
+      - name: Sync to DagsHub (For Thesis Data)
+        env:
+          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+          # Ganti dengan 'username/repo-name' Anda
+          REPO_NAME: "username/MSML2" 
+        run: |
+          # Menggunakan library dagshub untuk upload hasil mlruns lokal ke remote
+          python -c "import dagshub; dagshub.upload_files(repo='$REPO_NAME', local_path='mlruns', remote_path='mlruns')"
 
       - name: Get latest MLflow run_id
         run: |
-          # Mengambil folder ID terbaru di mlruns lokal
-          # Kami menggunakan rev dan cut untuk memastikan mendapatkan UUID folder dengan benar
+          # Ambil ID dari folder lokal
           RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | rev | cut -d'/' -f2 | rev)
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "Latest local run_id detected: $RUN_ID"
+          echo "Latest local run_id: $RUN_ID"
 
       - name: Build Docker Model
         run: |
-          # Build menggunakan model yang tersimpan di mlruns lokal hasil run ke-2
-          # Pastikan di modelling.py Anda menggunakan artifact_path="model"
           mlflow models build-docker --model-uri "mlruns/0/${{ env.RUN_ID }}/artifacts/model" --name "gym-exercise"
 
       - name: Log in to Docker Hub
@@ -64,10 +65,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Tag Docker Image
+      - name: Tag and Push
         run: |
           docker tag gym-exercise ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
-
-      - name: Push Docker Image
-        run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
