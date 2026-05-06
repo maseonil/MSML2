@@ -4,10 +4,11 @@ import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 
-# Menggunakan nama eksperimen yang konsisten dengan file YAML
+# 1. Tentukan Eksperimen (Sesuai dengan yang ada di YAML)
 mlflow.set_experiment("gym_exp_project")
 
-mlflow.sklearn.autolog() 
+# 2. Matikan autolog untuk model agar kita bisa simpan manual dengan nama folder yang benar
+mlflow.sklearn.autolog(log_models=False) 
 
 # Memuat dataset
 df = pd.read_csv("gym_dataset_preprocessing.csv")
@@ -32,3 +33,11 @@ with mlflow.start_run(run_name="Random Forest Modelling"):
     
     test_accuracy = rf.score(X_test, y_test)
     mlflow.log_metric("test_accuracy", test_accuracy)
+
+    # 3. Simpan Model Secara Manual
+    # artifact_path="model" adalah kunci agar Build Docker di YAML tidak error
+    mlflow.sklearn.log_model(
+        sk_model=rf, 
+        artifact_path="model", 
+        input_example=input_example
+    )
