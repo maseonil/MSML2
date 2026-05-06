@@ -39,20 +39,26 @@ jobs:
           # 1. Logging ke DagsHub untuk keperluan data skripsi
           mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
           
-          # 2. Hapus tracking URI agar MLflow menulis ke folder 'mlruns' lokal di GitHub
+          # 2. PAKSA simpan ke lokal dengan mendefinisikan backend-store-uri
+          # Ini memastikan folder 'mlruns' tercipta secara fisik untuk proses build-docker
           unset MLFLOW_TRACKING_URI
-          mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
+          mlflow run MLProject/ -e modelling.py --env-manager=local \
+            --experiment-name gym_exp_project \
+            --backend-store-uri sqlite:///mlflow.db \
+            --default-artifact-root ./mlruns
 
       - name: Get latest MLflow run_id
         run: |
-          # Mencari RUN_ID dari folder mlruns fisik yang baru dibuat
-          RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
+          # Mengambil folder ID terbaru di mlruns lokal
+          # Kami menggunakan rev dan cut untuk memastikan mendapatkan UUID folder dengan benar
+          RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | rev | cut -d'/' -f2 | rev)
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Latest local run_id detected: $RUN_ID"
 
       - name: Build Docker Model
         run: |
-          # Membangun image menggunakan model yang tersimpan di GitHub (bukan download dari DagsHub)
+          # Build menggunakan model yang tersimpan di mlruns lokal hasil run ke-2
+          # Pastikan di modelling.py Anda menggunakan artifact_path="model"
           mlflow models build-docker --model-uri "mlruns/0/${{ env.RUN_ID }}/artifacts/model" --name "gym-exercise"
 
       - name: Log in to Docker Hub
@@ -63,10 +69,8 @@ jobs:
 
       - name: Tag Docker Image
         run: |
-          # Menghubungkan image lokal ke akun Docker Hub Anda
           docker tag gym-exercise ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
 
       - name: Push Docker Image
         run: |
-          # Mengirim image final ke Docker Hub
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
