@@ -34,8 +34,8 @@ jobs:
           MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
           # Urutan: n_estimators max_depth min_samples_split criterion
-          python MLProject/modelling.py 300 10 5 entropy
-
+          mlflow run MLproject --env-manager=local
+          
       - name: Get Run ID
         run: |
           # Mengambil folder ID terbaru dari eksperimen 0
