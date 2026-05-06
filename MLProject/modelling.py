@@ -3,6 +3,19 @@ import mlflow
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
+import os
+import pandas as pd
+
+# Mendapatkan path absolut ke direktori tempat script ini berada
+base_path = os.path.dirname(__file__)
+csv_path = os.path.join(base_path, "gym_dataset_preprocessing.csv")
+
+# Memuat dataset menggunakan path yang sudah digabung
+if os.path.exists(csv_path):
+    df = pd.read_csv(csv_path)
+else:
+    # Fallback jika file berada di root (untuk keamanan)
+    df = pd.read_csv("gym_dataset_preprocessing.csv")
 
 # 1. Tentukan Eksperimen (Sesuai dengan yang ada di YAML)
 mlflow.set_experiment("gym_exp_project")
