@@ -36,24 +36,23 @@ jobs:
           MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          # 1. Jalankan training ke DagsHub untuk logging remote
+          # 1. Logging ke DagsHub untuk keperluan data skripsi
           mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
           
-          # 2. Hapus tracking URI dan jalankan ulang ke lokal
-          # Ini memastikan folder 'mlruns' tercipta secara fisik untuk proses build-docker
+          # 2. Hapus tracking URI agar MLflow menulis ke folder 'mlruns' lokal di GitHub
           unset MLFLOW_TRACKING_URI
           mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
 
       - name: Get latest MLflow run_id
         run: |
-          # Mengambil folder ID terbaru di mlruns lokal
+          # Mencari RUN_ID dari folder mlruns fisik yang baru dibuat
           RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Latest local run_id detected: $RUN_ID"
 
       - name: Build Docker Model
         run: |
-          # Build menggunakan path fisik lokal agar tidak bergantung pada koneksi DagsHub yang labil
+          # Membangun image menggunakan model yang tersimpan di GitHub (bukan download dari DagsHub)
           mlflow models build-docker --model-uri "mlruns/0/${{ env.RUN_ID }}/artifacts/model" --name "gym-exercise"
 
       - name: Log in to Docker Hub
@@ -64,9 +63,10 @@ jobs:
 
       - name: Tag Docker Image
         run: |
-          # Menyesuaikan nama image 'gym-exercise' dengan format Docker Hub
+          # Menghubungkan image lokal ke akun Docker Hub Anda
           docker tag gym-exercise ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
 
       - name: Push Docker Image
         run: |
+          # Mengirim image final ke Docker Hub
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
