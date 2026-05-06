@@ -36,6 +36,9 @@ jobs:
         run: |
           # Perubahan path: langsung merujuk ke folder MLProject/
           # -e merujuk pada entry point 'modelling.py' di file MLProject
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
           mlflow run MLProject/ -e modelling.py --env-manager=local 
 
       - name: Get latest MLflow run_id
