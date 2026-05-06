@@ -14,6 +14,7 @@ X = df.drop(columns=['Experience_Level'])
 y = df['Experience_Level']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+input_example = X_train[0:5]
 
 mlflow.sklearn.autolog()
 
@@ -27,11 +28,11 @@ with mlflow.start_run():
     rf.fit(X_train, y_train)
 
     accuracy = rf.score(X_test, y_test)
-     mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("accuracy", accuracy)
     
     # Log model ke folder bernama 'model'
     mlflow.sklearn.log_model(
         sk_model=rf, 
         artifact_path="model", 
-        input_example=X_train[0:5]
+        input_example=input_example
     )
