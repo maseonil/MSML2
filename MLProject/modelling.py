@@ -3,7 +3,7 @@ import mlflow
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 
-mlflow.set_experiment("Gym Experience Level Project")
+mlflow.set_experiment("gym_exp_project")
 
 mlflow.sklearn.autolog(log_models=False, log_datasets=False) 
 
