@@ -30,8 +30,6 @@ jobs:
           pip install mlflow==2.19.0 pandas scikit-learn==1.5.2
 
       - name: Run training
-        env:
-          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
           # Urutan: n_estimators max_depth min_samples_split criterion
           mlflow run MLProject --env-manager=local
