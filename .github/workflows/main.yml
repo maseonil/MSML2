@@ -39,13 +39,10 @@ jobs:
           # 1. Logging ke DagsHub untuk keperluan data skripsi
           mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
           
-          # 2. PAKSA simpan ke lokal dengan mendefinisikan backend-store-uri
-          # Ini memastikan folder 'mlruns' tercipta secara fisik untuk proses build-docker
-          unset MLFLOW_TRACKING_URI
-          mlflow run MLProject/ -e modelling.py --env-manager=local \
-            --experiment-name gym_exp_project \
-            --backend-store-uri sqlite:///mlflow.db \
-            --default-artifact-root ./mlruns
+          # 2. PAKSA simpan ke lokal untuk proses build-docker
+          # Gunakan env variable untuk mengarahkan tracking ke sqlite lokal
+          export MLFLOW_TRACKING_URI=sqlite:///mlflow.db
+          mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
 
       - name: Get latest MLflow run_id
         run: |
