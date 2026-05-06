@@ -6,7 +6,7 @@ on:
       - main
 env:
   CSV_URL: "MLProject/gym_dataset_preprocessing.csv"
-  TARGET_VAR: "Credit_Score"
+  TARGET_VAR: "Experience_Level"
 
 jobs:
   build-and-push:
@@ -34,7 +34,7 @@ jobs:
           # Memaksa MLflow menggunakan database lokal agar folder mlruns tercipta
           MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
-          python MLProject/modelling.py
+           mlflow run ./MLProject -e modelling.py --env-manager=local 
 
       - name: Get Run ID
         run: |
