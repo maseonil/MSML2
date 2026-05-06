@@ -9,7 +9,6 @@ on:
       - main
 
 env:
-  # Sesuaikan dengan lokasi dataset di dalam folder MLProject
   CSV_URL: "MLProject/gym_dataset_preprocessing.csv" 
   TARGET_VAR: "Experience_Level"
 
@@ -29,8 +28,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Tambahkan library yang dibutuhkan modelling.py agar --env-manager=local jalan
-          pip install mlflow==2.19.0 pandas scikit-learn 
+          # Tambahkan dagshub agar script python pencarian RUN_ID bisa jalan
+          pip install mlflow==2.19.0 pandas scikit-learn dagshub
 
       - name: Run mlflow project
         env:
@@ -38,38 +37,41 @@ jobs:
           MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          # Perubahan path: langsung merujuk ke folder MLProject/
-          # -e merujuk pada entry point 'modelling.py' di file MLProject
+          # Pastikan --experiment-name sama dengan yang dicari di step berikutnya
           mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
 
       - name: Get latest MLflow run_id
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          # Perintah ini mencari folder terbaru di mlruns meskipun lokasinya dalam folder
-          RUN_ID=$(find mlruns -type d -links 2 -printf '%T@ %p\n' | sort -n | tail -1 | awk '{print $2}' | cut -d'/' -f3)
-          
-          # Jika RUN_ID masih kosong, coba alternatif ls
-          if [ -z "$RUN_ID" ]; then
-            RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
-          fi
-          
+          # Mengambil RUN_ID terbaru dari DagsHub menggunakan Python
+          RUN_ID=$(python -c "import mlflow; exp = mlflow.get_experiment_by_name('gym_exp_project'); runs = mlflow.search_runs(experiment_ids=[exp.experiment_id], order_by=['attributes.start_time DESC'], max_results=1); print(runs.iloc[0]['run_id'])")
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "Latest run_id detected: $RUN_ID"
+          echo "Latest run_id detected from DagsHub: $RUN_ID"
 
-      # Build Docker Model
       - name: Build Docker Model
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          # Pastikan formatnya runs:/$RUN_ID/model (hanya satu garis miring setelah titik dua)
+          # Membangun image lokal dengan nama 'gym-exercise'
           mlflow models build-docker --model-uri "runs:/${{ env.RUN_ID }}/model" --name "gym-exercise"
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          # Pastikan nama secret ini sama di GitHub Settings
+          # Menggunakan nama secret yang Anda sebutkan di YAML terakhir
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Tag Docker Image
         run: |
-          docker tag cc ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
+          # Perbaikan: tag dari 'gym-exercise' (sesuai nama di build-docker) 
+          # ke format 'username/repo'
+          docker tag gym-exercise ${{ secrets.DOCKERHUB_USERNAME }}/gym-exercise:latest
 
       - name: Push Docker Image
         run: |
