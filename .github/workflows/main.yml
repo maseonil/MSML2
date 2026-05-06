@@ -44,16 +44,22 @@ jobs:
 
       - name: Get latest MLflow run_id
         run: |
-          # Mengambil RUN_ID dari folder mlruns lokal yang tercipta saat run
-          RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
+          # Perintah ini mencari folder terbaru di mlruns meskipun lokasinya dalam folder
+          RUN_ID=$(find mlruns -type d -links 2 -printf '%T@ %p\n' | sort -n | tail -1 | awk '{print $2}' | cut -d'/' -f3)
+          
+          # Jika RUN_ID masih kosong, coba alternatif ls
+          if [ -z "$RUN_ID" ]; then
+            RUN_ID=$(ls -td mlruns/0/*/ | head -n 1 | cut -d'/' -f3)
+          fi
+          
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "Latest run_id: $RUN_ID"
+          echo "Latest run_id detected: $RUN_ID"
 
+      # Build Docker Model
       - name: Build Docker Model
         run: |
-          # Build image dengan nama 'gym-exercise'
-          mlflow models build-docker --model-uri "runs:/$RUN_ID/model" --name "gym-exercise" 
-
+          # Pastikan formatnya runs:/$RUN_ID/model (hanya satu garis miring setelah titik dua)
+          mlflow models build-docker --model-uri "runs:/${{ env.RUN_ID }}/model" --name "gym-exercise"
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
