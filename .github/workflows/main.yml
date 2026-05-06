@@ -10,7 +10,7 @@ on:
 
 env:
   # Sesuaikan dengan lokasi dataset di dalam folder MLProject
-  CSV_URL: "MLProject/namadataset_preprocessing.csv" 
+  CSV_URL: "MLProject/gym_dataset_preprocessing.csv" 
   TARGET_VAR: "Experience_Level"
 
 jobs:
