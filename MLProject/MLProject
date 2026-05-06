@@ -1,0 +1,7 @@
+name: Gym_Experience_Analysis
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    command: "python modelling.py"
