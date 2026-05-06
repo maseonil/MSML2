@@ -24,7 +24,7 @@ mlflow.set_experiment("gym_exp_project")
 mlflow.sklearn.autolog(log_models=False) 
 
 # Memuat dataset
-df = pd.read_csv("gym_dataset_preprocessing.csv")
+df = pd.read_csv(csv_path)
 X = df.drop(columns=['Experience_Level'])
 y = df['Experience_Level']
 
