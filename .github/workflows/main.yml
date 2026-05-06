@@ -30,7 +30,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # Tambahkan library yang dibutuhkan modelling.py agar --env-manager=local jalan
-          pip install mlflow pandas scikit-learn 
+          pip install mlflow==2.19.0 pandas scikit-learn 
 
       - name: Run mlflow project
         env:
