@@ -32,12 +32,12 @@ jobs:
 
       - name: Run training
         env:
-          # Kita paksa jalan lokal agar folder mlruns tercipta pasti di runner
+          # Pastikan URI mengarah ke SQLite lokal agar folder mlruns tercipta di runner
           MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
-          # Jalankan training (akan menghasilkan folder mlruns secara lokal)
-          mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
-
+          # JANGAN gunakan 'mlflow run'. Panggil script Python langsung.
+          # Ini adalah cara teraman untuk menghindari konflik ID saat inisialisasi database.
+          python MLProject/modelling.py
       - name: Sync to DagsHub (For Thesis Data)
         env:
           DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
