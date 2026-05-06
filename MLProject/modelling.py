@@ -1,12 +1,16 @@
 import pandas as pd
 import mlflow
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 
-mlflow.set_experiment("gym_exp_project")
+# Mengambil experiment name dari environment atau default ke gym_exp_project
+experiment_name = "gym_exp_project"
+mlflow.set_experiment(experiment_name)
 
 mlflow.sklearn.autolog(log_models=False, log_datasets=False) 
 
+# Pastikan path file sesuai dengan struktur di GitHub
 df = pd.read_csv("gym_dataset_preprocessing.csv")
 X = df.drop(columns=['Experience_Level'])
 y = df['Experience_Level']
@@ -33,9 +37,10 @@ with mlflow.start_run(run_name="Random Forest Modelling"):
     test_accuracy = rf.score(X_test, y_test)
     mlflow.log_metric("test_accuracy", test_accuracy)
 
+    # PERUBAHAN PENTING: artifact_path harus bernama "model" agar sinkron dengan main.yml
     mlflow.sklearn.log_model(
         sk_model=rf, 
-        artifact_path="best_model", 
+        artifact_path="model", 
         input_example=input_example,
         registered_model_name="Gym_Experience_RF_Model"
     )
