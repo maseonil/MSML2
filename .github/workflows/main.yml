@@ -40,7 +40,7 @@ jobs:
         run: |
           # Perubahan path: langsung merujuk ke folder MLProject/
           # -e merujuk pada entry point 'modelling.py' di file MLProject
-          mlflow run MLProject/ -e modelling.py --env-manager=local 
+          mlflow run MLProject/ -e modelling.py --env-manager=local --experiment-name gym_exp_project
 
       - name: Get latest MLflow run_id
         run: |
