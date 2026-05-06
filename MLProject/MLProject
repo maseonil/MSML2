@@ -1,4 +1,13 @@
-name: gym_exp_project
+name: latihan-cs-mlflow
+
+conda_env: conda.yaml
+
 entry_points:
-  modelling.py:
-    command: "python modelling.py"
+  main:
+    parameters:
+      n_estimators: {type: int, default: 300}
+      max_depth: {type: int, default: 10}
+      min_samples_split: {type: int, default: 5}
+      criterion: {type: string, default: "entropy"}
+      dataset: {type: string, default: "gym_dataset_preprocessing.csv"}
+    command: "python modelling.py {n_estimators} {max_depth} {min_samples_split} {criterion} {dataset}"
