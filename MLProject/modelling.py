@@ -43,3 +43,9 @@ if __name__ == "__main__":
 
         accuracy = model.score(X_test, y_test)
         mlflow.log_metric("accuracy", accuracy)
+
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",
+            input_example=input_example
+        ) 
