@@ -40,28 +40,9 @@ jobs:
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Latest run_id: $RUN_ID"
 
-      - name: Create Custom Dockerfile
+      - name: Build Docker Model
         run: |
-          cat <<EOF > Dockerfile
-          FROM python:3.12-slim
-          WORKDIR /app
-          
-          # Install dependencies minimal
-          RUN pip install mlflow==2.19.0 pandas scikit-learn==1.5.2
-          
-          # Salin artefak model yang baru saja di-generate
-          COPY mlruns/0/${{ env.RUN_ID }}/artifacts/model /app/model
-          
-          # Port default untuk MLflow models serve
-          EXPOSE 5001
-          
-          # Jalankan server model saat container dimulai
-          ENTRYPOINT ["mlflow", "models", "serve", "-m", "/app/model", "--host", "0.0.0.0", "--port", "5001", "--no-conda"]
-          EOF
-
-      - name: Build and Tag Image
-        run: |
-          docker build -t gym-exercise .
+          mlflow models build-docker --model-uri "runs:/$RUN_ID/model" --name "gym-exercise" --env-manager=local
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
